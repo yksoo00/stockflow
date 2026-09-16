@@ -54,7 +54,7 @@ async function search() {
     page: String(currentPage),
     q: $('#stockinSearch')?.value.trim() || '',
     source: $('#stockinSource')?.value || '',
-    site: $('#stockinSite')?.value.trim() || '',
+    ...window.siteParams('stockin'),
     sort: sortCol,
     dir: sortDir,
   });
@@ -71,9 +71,9 @@ async function search() {
           <tr>
             <td>${esc(item.created_at)}</td>
             <td>${esc(item.source_label || item.source)}</td>
-            <td>${esc(item.identifier || '')}${item.serials && item.serials.length ?  <span class="tag info" title="${esc(item.serials.join('\n'))}">S/N ${item.serials.length}</span> : ''}</td>
+            <td>${esc(item.identifier || '')}${item.serials && item.serials.length ? `<span class="tag info" title="${esc(item.serials.join('\n'))}">S/N ${item.serials.length}</span>` : ''}</td>
             <td>${esc(item.item_name || '')}</td>
-            <td>${item.site ? <a class="site-link" href="/sites/${encodeURIComponent(item.site)}">${esc(item.site)}</a> : ''}</td>
+            <td>${item.site ? `<a class="site-link" href="/sites/${encodeURIComponent(item.site)}">${esc(item.site)}</a>` : ''}</td>
             <td>${esc(item.quantity)}ea</td>
             <td>${esc(item.reason || '')}</td>
             <td>${esc(item.user || '')}</td>
@@ -118,11 +118,12 @@ function renderSortableHead() {
   });
 }
 
-['#stockinSearch', '#stockinSite'].forEach((selector) => $(selector)?.addEventListener('input', () => {
+$('#stockinSearch')?.addEventListener('input', () => {
   clearTimeout(timer);
   currentPage = 1;
   timer = setTimeout(search, 250);
-}));
+});
+window.bindSiteScope('stockin', () => { currentPage = 1; search(); });
 
 $('#stockinSource')?.addEventListener('change', () => {
   currentPage = 1;

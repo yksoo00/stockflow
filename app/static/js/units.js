@@ -33,7 +33,7 @@ async function search() {
     page: String(currentPage),
     q: $('#unitSearch')?.value.trim() || '',
     status: $('#unitStatus')?.value || '',
-    site: $('#unitSite')?.value.trim() || '',
+    ...window.siteParams('unit'),
   });
 
   try {
@@ -99,11 +99,12 @@ const closeModal = () => { $('#unitModal').style.display = 'none'; };
 $('#unitModalClose')?.addEventListener('click', closeModal);
 $('#unitModalOk')?.addEventListener('click', closeModal);
 
-['#unitSearch', '#unitSite'].forEach((s) => $(s)?.addEventListener('input', () => {
+$('#unitSearch')?.addEventListener('input', () => {
   clearTimeout(timer);
   currentPage = 1;
   timer = setTimeout(search, 250);
-}));
+});
+window.bindSiteScope('unit', () => { currentPage = 1; search(); });
 $('#unitStatus')?.addEventListener('change', () => { currentPage = 1; search(); });
 
 search();

@@ -11,6 +11,7 @@ from ..services.notify import mail
 from ..utils.time import fmt, local_date_range_utc, utcnow
 from .common import (
     admin_required_api,
+    apply_site_filter,
     fmt_qty,
     lock_row,
     log_action,
@@ -78,7 +79,6 @@ def list_stockrequest():
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
     date = request.args.get("date", "").strip()  # YYYY-MM-DD
-    site = request.args.get("site", "").strip()
 
     query = StockRequest.query
 
@@ -96,8 +96,7 @@ def list_stockrequest():
     if status:
         query = query.filter(StockRequest.status == status)
 
-    if site:
-        query = query.filter(StockRequest.site.ilike(f"%{site}%"))
+    query = apply_site_filter(query, StockRequest.site, request.args)
 
     if date:
         try:

@@ -14,6 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .. import db
 from ..models import User
+from ..models.user import parse_site_list
 from ..utils.time import fmt
 from .auth import MIN_PASSWORD_LEN, ROLES
 from .common import admin_required, admin_required_api, log_action
@@ -31,6 +32,7 @@ def _serialize(u):
         "role": u.role,
         "email": u.email,
         "site": u.site,
+        "sites": u.site_list,
         "active": bool(u.active),
         "must_change_password": bool(u.must_change_password),
         "created_at": fmt(u.created_at),
@@ -48,7 +50,7 @@ def account():
 
         if form == "profile":
             email = request.form.get("email", "").strip() or None
-            site = request.form.get("site", "").strip() or None
+            sites = parse_site_list(request.form.get("site", ""))
             if email and "@" not in email:
                 flash("이메일 형식이 올바르지 않습니다.", "error")
                 return redirect(url_for("users.account"))
@@ -56,9 +58,9 @@ def account():
             if email != current_user.email:
                 changed.append("이메일")
                 current_user.email = email
-            if site != current_user.site:
-                changed.append("담당 사이트")
-                current_user.site = site
+            if sites != current_user.site_list:
+                changed.append(f"담당 사이트 → {', '.join(sites) or '-'}")
+                current_user.site_list = sites
             if changed:
                 log_action(
                     "profile_update",
@@ -156,10 +158,10 @@ def update_user(user_id):
             u.email = email
 
     if "site" in payload:
-        site = str(payload["site"] or "").strip() or None
-        if site != u.site:
-            changes.append(f"담당사이트 {u.site or '-'}→{site or '-'}")
-            u.site = site
+        sites = parse_site_list(payload["site"])
+        if sites != u.site_list:
+            changes.append(f"담당사이트 {u.site or '-'}→{', '.join(sites) or '-'}")
+            u.site_list = sites
 
     if "name" in payload:
         name = str(payload["name"] or "").strip()

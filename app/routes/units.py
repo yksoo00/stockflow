@@ -8,7 +8,7 @@ from flask_login import login_required
 from .. import db
 from ..models import DiskUnit, StockIn, StockOut
 from ..utils.time import fmt
-from .common import fmt_qty, serialize_unit, user_label
+from .common import apply_site_filter, fmt_qty, serialize_unit, user_label
 
 units_bp = Blueprint("units", __name__)
 logger = logging.getLogger(__name__)
@@ -26,7 +26,6 @@ def list_units():
     page_size = min(max(request.args.get("page_size", 20, type=int), 1), 200)
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
-    site = request.args.get("site", "").strip()
 
     query = DiskUnit.query
 
@@ -42,8 +41,7 @@ def list_units():
         )
     if status in {DiskUnit.STATUS_IN_STOCK, DiskUnit.STATUS_OUT}:
         query = query.filter(DiskUnit.status == status)
-    if site:
-        query = query.filter(DiskUnit.site.ilike(f"%{site}%"))
+    query = apply_site_filter(query, DiskUnit.site, request.args)
 
     total = query.count()
     total_pages = max((total + page_size - 1) // page_size, 1)

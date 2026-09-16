@@ -38,7 +38,7 @@
 <main class="main">
   <header class="topbar">
     <div class="crumb">사내 재고관리</div>
-    <div class="user">{{ current_user.name or current_user.username }}{% if current_user.position %} · {{ current_user.position }}{% endif %}{% if user_site %} · <span class="user-site" title="담당 사이트">{{ user_site }}</span>{% endif %}</div>
+    <div class="user">{{ current_user.name or current_user.username }}{% if current_user.position %} · {{ current_user.position }}{% endif %}{% for site in user_sites %} <a class="user-site" href="{{ url_for('main.site_detail', site=site) }}" title="담당 사이트 상세">{{ site }}</a>{% endfor %}</div>
   </header>
   {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<script id="flash-data" type="application/json">{{ messages | tojson }}</script>{% endif %}{% endwith %}
   {% block content %}{% endblock %}
@@ -46,7 +46,7 @@
 <script>
 window.IS_ADMIN = {{ (current_user.is_authenticated and current_user.role == 'admin') | tojson }};
 window.USER_ID = {{ (current_user.id if current_user.is_authenticated else none) | tojson }};
-window.USER_SITE = {{ (user_site or '') | tojson }};
+window.USER_SITES = {{ user_sites | tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 {% block scripts %}{% endblock %}

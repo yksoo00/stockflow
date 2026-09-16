@@ -7,6 +7,7 @@ from flask_login import current_user, login_required
 
 from .. import db
 from ..models import AdminLog, DiskUnit, ExcelSheet, InventoryRow, SheetColumn
+from ..models.user import parse_site_list
 from ..services.inventory.normalize import find_quantity_key, normalize_row
 from ..utils.time import fmt
 
@@ -221,6 +222,25 @@ def lock_row(row_id):
     if row is None or row.is_deleted:
         return None
     return row
+
+
+# ---------------------------------------------------------------------------
+# 사이트 필터 (목록 API 공통)
+#   site  = 부분 일치 한 개 (검색창)
+#   sites = 쉼표 구분 여러 개, 각각 부분 일치 OR (담당 사이트 여러 개일 때)
+#   scope = "mine" 이면 로그인 사용자의 담당 사이트 전체
+# ---------------------------------------------------------------------------
+def apply_site_filter(query, column, args):
+    site = (args.get("site") or "").strip()
+    sites = parse_site_list(args.get("sites"))
+    if args.get("scope") == "mine" and current_user.is_authenticated:
+        sites = sites or current_user.site_list
+
+    if site:
+        return query.filter(column.ilike(f"%{site}%"))
+    if sites:
+        return query.filter(db.or_(*[column.ilike(f"%{s}%") for s in sites]))
+    return query
 
 
 # ---------------------------------------------------------------------------

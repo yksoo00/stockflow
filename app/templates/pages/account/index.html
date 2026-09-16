@@ -22,12 +22,13 @@
   </section>
 
   <section class="panel">
-    <div class="panel-head"><div><h2>알림 · 담당 사이트</h2><p>이메일을 넣으면 입고요청 승인/도착 알림을 받습니다{% if current_user.role == 'admin' %} (관리자는 입고요청·저재고 알림도){% endif %}. 담당 사이트는 출고/입고/요청 목록의 기본 필터가 됩니다.</p></div></div>
+    <div class="panel-head"><div><h2>알림 · 담당 사이트</h2><p>이메일을 넣으면 입고요청 승인/도착 알림을 받습니다{% if current_user.role == 'admin' %} (관리자는 입고요청·저재고 알림도){% endif %}. 담당 사이트(여러 개 가능)는 출고/입고/요청/시리얼 목록의 기본 범위가 되고, 출고·요청 모달에서 선택지로 뜹니다.</p></div></div>
     <form method="post" class="form-stack">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="form" value="profile">
       <label>이메일<input type="email" name="email" value="{{ current_user.email or '' }}" placeholder="name@company.com" autocomplete="email"></label>
-      <label>담당 사이트<input name="site" value="{{ current_user.site or '' }}" placeholder="예: 서울IDC (비우면 전체)"></label>
+      <label>담당 사이트 (여러 개면 쉼표로 구분)<input name="site" value="{{ current_user.site_list | join(', ') }}" placeholder="예: 서울IDC, 부산DC, 대전DC"></label>
+      {% if current_user.site_list %}<div class="code-chips">{% for s in current_user.site_list %}<a class="code-chip" href="{{ url_for('main.site_detail', site=s) }}">{{ s }}</a>{% endfor %}</div>{% endif %}
       <div class="form-actions"><button class="primary">저장</button></div>
     </form>
   </section>

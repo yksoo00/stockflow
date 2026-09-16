@@ -1,10 +1,11 @@
 {% extends 'layouts/base.html' %}
+{% from 'macros/site_scope.html' import site_scope %}
 {% block content %}
 <section class="page-head"><div><span class="eyebrow">REQUESTS</span><h1>입고 요청</h1><p>출고로 재고가 부족해지면 자동으로, 필요하면 직접 입고 요청을 등록합니다. 승인 없이 <b>{{ stale_days }}일</b> 이상 지나면 빨간색으로 표시됩니다.</p></div></section>
 <section class="panel">
   <div class="toolbar">
     <input id="requestSearch" class="search" placeholder="Code, 품명, 사이트, 사유로 검색">
-    <input id="requestSite" class="search" style="max-width:220px" placeholder="사이트 필터" value="{{ user_site or '' }}" title="비우면 전체 사이트">
+    {{ site_scope('request', user_sites) }}
     <label class="date-field"><span>날짜</span><input id="requestDate" type="date"></label>
     <select id="requestStatus">
       <option value="">전체 상태</option>
@@ -13,7 +14,7 @@
       <option value="arrived">입고완료</option>
     </select>
   </div>
-  {% if user_site %}<div class="sheet-help">담당 사이트 <b>{{ user_site }}</b> 기준으로 먼저 보여줍니다. 사이트 필터를 비우면 전체를 봅니다.</div>{% endif %}
+  {% if user_sites %}<div class="sheet-help">담당 사이트 <b>{{ user_sites|join(", ") }}</b> 기준으로 먼저 보여줍니다. "전체 사이트"를 고르거나 검색창에 다른 사이트를 입력할 수 있습니다.</div>{% endif %}
   <div class="table-wrap">
     <table id="requestTable">
       <thead><tr><th>일시</th><th>구분</th><th>Code</th><th>품명</th><th>사이트</th><th>수량</th><th>사유</th><th>요청자</th><th>상태</th><th>작업</th></tr></thead>

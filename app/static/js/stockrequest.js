@@ -88,7 +88,7 @@ async function search() {
     page: String(currentPage),
     page_size: '10',
     q: $('#requestSearch')?.value.trim() || '',
-    site: $('#requestSite')?.value.trim() || '',
+    ...window.siteParams('request'),
     status: $('#requestStatus')?.value || '',
     date: $('#requestDate')?.value || '',
   });
@@ -221,11 +221,12 @@ $('#arriveModal')?.addEventListener('click', (event) => {
   if (event.target === $('#arriveModal')) closeArriveModal();
 });
 
-['#requestSearch', '#requestSite'].forEach((selector) => $(selector)?.addEventListener('input', () => {
+$('#requestSearch')?.addEventListener('input', () => {
   clearTimeout(timer);
   currentPage = 1;
   timer = setTimeout(search, 250);
-}));
+});
+window.bindSiteScope('request', () => { currentPage = 1; search(); });
 
 ['#requestStatus', '#requestDate'].forEach((selector) => $(selector)?.addEventListener('change', () => {
   currentPage = 1;

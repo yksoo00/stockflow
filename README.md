@@ -18,7 +18,7 @@ Excel로 관리하던 재고 시트를 업로드하면 표 구조를 자동으�
 | 사이트 상세 | 사이트 클릭 → 월별 출고, 코드별 누적, 최근 입출고, 진행 중 요청, 위치가 그 사이트인 보유 재고 |
 | 승인 대기 배지 | 미승인 입고요청 수를 사이드바에 빨간 배지로. `STOCKREQUEST_STALE_DAYS` 이상 방치된 건이 있으면 진한 색으로 깜빡임 |
 | 이메일 알림 (Gmail) | 입고요청 생성/저재고 → 관리자, 승인/입고완료 → 요청자 |
-| 계정 관리 | 내 계정(비밀번호 변경·이메일·담당 사이트), 관리자 사용자 관리(역할·초기화·비활성화). 담당 사이트는 출고/입고/요청 목록 기본 필터 |
+| 계정 관리 | 내 계정(비밀번호 변경·이메일·담당 사이트 **여러 개**), 관리자 사용자 관리(역할·초기화·비활성화). 담당 사이트는 출고/입고/요청/시리얼 목록의 기본 범위('내 담당 사이트 / 개별 / 전체' 선택)와 출고·요청 모달의 선택지 |
 | 활동 로그 | 모든 사용자의 출고·입고·요청·승인·도착·Excel·계정·로그인 기록 |
 | AI 채팅 (선택) | Gemini가 DB 조회 결과만 근거로 답변. 수량 변경은 "제안 → 관리자 승인" 2단계 |
 | eBay 가격 조회 (선택) | 품번으로 eBay Browse API 검색, 가격+배송비 총액 기준 정렬 |
@@ -66,6 +66,15 @@ python run.py                   # waitress, http://localhost:8000
 # 개발 중 자동 리로드가 필요하면
 FLASK_DEBUG=1 python run.py
 ```
+
+### 2-C. MySQL 없이 바로 띄우기 (로컬 확인용)
+
+```powershell
+.\run_local.ps1          # SQLite(instance/stockflow.db) 로 기동, 관리자 admin / admin12345 자동 생성
+.\run_local.ps1 -Debug   # 자동 리로드
+```
+
+`.env` 는 그대로 두고 이 프로세스에서만 `DATABASE_URL` 을 SQLite 로 덮어씁니다. 운영 데이터와 무관한 별도 DB 입니다.
 
 ### 3. 첫 관리자 계정
 
@@ -147,8 +156,8 @@ app/
 ├─ utils/time.py        UTC 저장 ↔ 로컬(KST) 표시, SQL 시간대 보정
 ├─ static/              css, js (페이지별 1파일)
 └─ templates/           Jinja2 (layouts/base.html 상속)
-migrations/             Alembic 마이그레이션 (0001 baseline, 0002 ...)
-tests/                  pytest (SQLite 메모리 DB, 124개)
+migrations/             Alembic 마이그레이션 (0001 baseline, 0002 계정/시리얼/티켓, 0003 담당 사이트 복수)
+tests/                  pytest (SQLite 메모리 DB, 126개; JS 문법은 node 없으면 내장 V8 로 검사)
 run.py                  진입점 (waitress / FLASK_DEBUG=1 이면 개발 서버)
 check_ebay_creds.py     eBay 키 형식 점검 스크립트
 ```

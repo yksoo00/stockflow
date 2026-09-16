@@ -9,6 +9,7 @@ from ..models import DiskUnit, StockOut, StockRequest, User
 from ..services.notify import mail
 from ..utils.time import fmt, local_date_range_utc, utcnow
 from .common import (
+    apply_site_filter,
     fmt_qty,
     lock_row,
     log_action,
@@ -300,7 +301,6 @@ def list_stockout():
 
     q = request.args.get("q", "").strip()
     date = request.args.get("date", "").strip()
-    site = request.args.get("site", "").strip()
     include_cancelled = request.args.get("include_cancelled", "1") != "0"
 
     query = StockOut.query
@@ -319,8 +319,7 @@ def list_stockout():
             )
         )
 
-    if site:
-        query = query.filter(StockOut.site.ilike(f"%{site}%"))
+    query = apply_site_filter(query, StockOut.site, request.args)
 
     if not include_cancelled:
         query = query.filter(StockOut.cancelled_at.is_(None))

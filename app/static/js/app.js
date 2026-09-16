@@ -31,6 +31,39 @@ function showResultModal(message, type) {
 window.showResultModal = showResultModal;
 
 // ---------------------------------------------------------------------------
+// 사이트 범위 위젯(macros/site_scope.html) → 쿼리 파라미터.
+//   자유 입력(#<id>SiteText) 이 있으면 site=... , 없으면 select 값에 따라
+//   "mine" → scope=mine, 개별 사이트 → sites=<그 사이트>, "" → (필터 없음)
+// ---------------------------------------------------------------------------
+window.siteParams = function siteParams(id) {
+  const text = document.getElementById(`${id}SiteText`)?.value.trim() || '';
+  const scope = document.getElementById(`${id}SiteScope`)?.value ?? '';
+  if (text) return {site: text};
+  if (scope === 'mine') return {scope: 'mine'};
+  if (scope) return {sites: scope};
+  return {};
+};
+
+window.bindSiteScope = function bindSiteScope(id, onChange) {
+  document.getElementById(`${id}SiteScope`)?.addEventListener('change', onChange);
+  let t = null;
+  document.getElementById(`${id}SiteText`)?.addEventListener('input', () => {
+    clearTimeout(t);
+    t = setTimeout(onChange, 250);
+  });
+};
+
+// 출고/요청 모달의 사이트 입력: 담당 사이트가 1개면 자동 입력, 여러 개면 datalist 로 고르게 한다.
+window.siteInputHtml = function siteInputHtml(inputId, placeholder) {
+  const sites = window.USER_SITES || [];
+  const value = sites.length === 1 ? sites[0] : '';
+  const list = sites.length > 1
+    ? `<datalist id="${inputId}List">${sites.map((s) => `<option value="${escHtml(s)}">`).join('')}</datalist>`
+    : '';
+  return `<input class="modal-input" id="${inputId}" ${sites.length > 1 ? `list="${inputId}List"` : ''} placeholder="${escHtml(placeholder)}" value="${escHtml(value)}" autocomplete="off">${list}`;
+};
+
+// ---------------------------------------------------------------------------
 // CSRF: 서버(Flask-WTF)가 모든 POST/PATCH/DELETE 에 토큰을 요구한다.
 // 각 페이지 스크립트의 fetch 호출을 일일이 고치는 대신, 같은 출처로 가는
 // 상태 변경 요청에 X-CSRFToken 헤더를 자동으로 붙인다.

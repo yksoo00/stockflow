@@ -89,7 +89,7 @@ async function search() {
   const params = new URLSearchParams({
     page: String(currentPage),
     q: $('#stockoutSearch')?.value.trim() || '',
-    site: $('#stockoutSite')?.value.trim() || '',
+    ...window.siteParams('stockout'),
     date: $('#stockoutDate')?.value || '',
     include_cancelled: $('#stockoutShowCancelled')?.checked ? '1' : '0',
     sort: sortCol,
@@ -200,13 +200,12 @@ $('#cancelModal')?.addEventListener('click', (event) => {
   if (event.target === $('#cancelModal')) closeCancelModal();
 });
 
-['#stockoutSearch', '#stockoutSite'].forEach((selector) => {
-  $(selector)?.addEventListener('input', () => {
-    clearTimeout(timer);
-    currentPage = 1;
-    timer = setTimeout(search, 250);
-  });
+$('#stockoutSearch')?.addEventListener('input', () => {
+  clearTimeout(timer);
+  currentPage = 1;
+  timer = setTimeout(search, 250);
 });
+window.bindSiteScope('stockout', () => { currentPage = 1; search(); });
 
 $('#stockoutDate')?.addEventListener('change', () => {
   currentPage = 1;

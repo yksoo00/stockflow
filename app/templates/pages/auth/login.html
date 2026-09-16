@@ -19,7 +19,7 @@
     <label>이름<input name="name" autocomplete="name" required value="{{ request.form.get('name', '') }}"></label>
     <label>직책<input name="position" autocomplete="organization-title" placeholder="예: 사원, 대리, 팀장" value="{{ request.form.get('position', '') }}"></label>
     <label>이메일 (알림용, 선택)<input type="email" name="email" autocomplete="email" placeholder="name@company.com" value="{{ request.form.get('email', '') }}"></label>
-    <label>담당 사이트 (선택)<input name="site" placeholder="예: 서울IDC" value="{{ request.form.get('site', '') }}"></label>
+    <label>담당 사이트 (선택, 여러 개면 쉼표)<input name="site" placeholder="예: 서울IDC, 부산DC" value="{{ request.form.get('site', '') }}"></label>
     <label>역할
       <select name="role">
         {% for r in roles %}<option value="{{ r }}" {% if request.form.get('role', 'user') == r %}selected{% endif %}>{{ '관리자' if r == 'admin' else '일반 사용자' }}</option>{% endfor %}

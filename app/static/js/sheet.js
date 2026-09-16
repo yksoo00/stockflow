@@ -306,7 +306,7 @@ function renderRowModalStockOut(row) {
     </div>
     <div class="modal-field">
       <span class="modal-label">출고 사이트</span>
-      <input class="modal-input" id="stockoutSite" placeholder="예: 서울 IDC, A사이트 등" value="${esc(window.USER_SITE || '')}">
+      ${window.siteInputHtml('stockoutSite', '예: 서울 IDC, A사이트 등')}
     </div>
     <div class="modal-field">
       <span class="modal-label">출고 사유</span>
@@ -478,7 +478,7 @@ function renderRowModalRequest(row) {
     </div>
     <div class="modal-field">
       <span class="modal-label">사이트</span>
-      <input class="modal-input" id="requestSite" placeholder="예: 서울 IDC, A사이트 등" value="${esc(window.USER_SITE || '')}">
+      ${window.siteInputHtml('requestSite', '예: 서울 IDC, A사이트 등')}
     </div>
     <div class="modal-field">
       <span class="modal-label">요청 수량</span>

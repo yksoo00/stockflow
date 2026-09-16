@@ -1,0 +1,17 @@
+{#
+  사이트 범위 선택 — 담당 사이트가 여러 개인 사용자를 위한 공통 위젯.
+  select 값: "mine" (담당 사이트 전체) / "" (전체 사이트) / 개별 사이트명
+  + 자유 입력 검색창(#<id>SiteText). 자유 입력이 있으면 그것이 우선한다. (JS: siteParams())
+#}
+{% macro site_scope(id, user_sites) %}
+<select id="{{ id }}SiteScope" class="site-scope" title="사이트 범위">
+  {% if user_sites %}
+  <option value="mine" selected>내 담당 사이트 ({{ user_sites|length }}개)</option>
+  {% for s in user_sites %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+  <option value="">전체 사이트</option>
+  {% else %}
+  <option value="" selected>전체 사이트</option>
+  {% endif %}
+</select>
+<input id="{{ id }}SiteText" class="search site-text" style="max-width:200px" placeholder="다른 사이트 검색" title="입력하면 위 선택보다 우선">
+{% endmacro %}

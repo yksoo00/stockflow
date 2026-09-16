@@ -40,17 +40,45 @@ def test_change_password_wrong_current(user_client, app):
     assert check_password_hash(_user(app, "user1").password_hash, "userpass123")
 
 
-def test_profile_update_sets_site_filter_default(user_client, app):
+def test_profile_update_with_multiple_sites(user_client, app):
     user_client.post(
         "/account",
-        data={"form": "profile", "email": "u1@example.com", "site": "서울IDC", "csrf_token": user_client.csrf},
+        data={"form": "profile", "email": "u1@example.com", "site": "서울IDC, 부산DC" + chr(10) + "대전DC, 서울IDC",
+              "csrf_token": user_client.csrf},
     )
     u = _user(app, "user1")
-    assert u.email == "u1@example.com" and u.site == "서울IDC"
+    assert u.email == "u1@example.com"
+    assert u.site_list == ["서울IDC", "부산DC", "대전DC"]  # 중복 제거, 순서 유지
+    assert u.site == "서울IDC, 부산DC, 대전DC"
 
     html = user_client.get("/stockout").get_data(as_text=True)
-    assert 'id="stockoutSite" class="search" style="max-width:220px" placeholder="사이트 필터" value="서울IDC"' in html
-    assert 'window.USER_SITE = "\\uc11c\\uc6b8IDC"' in html or "서울IDC" in html
+    # 범위 선택 위젯: 내 담당 사이트(3개) 가 기본 선택, 개별 사이트 옵션
+    assert '<option value="mine" selected>내 담당 사이트 (3개)</option>' in html
+    assert html.count('<option value="부산DC">부산DC</option>') == 1
+    assert "window.USER_SITES = " in html
+
+
+def test_site_scope_filters_lists(user_client, app):
+    from .conftest import make_row
+
+    user_client.post(
+        "/account",
+        data={"form": "profile", "email": "", "site": "서울IDC, 부산DC", "csrf_token": user_client.csrf},
+    )
+    row_id = make_row(app, quantity=10)
+    for site in ("서울IDC", "부산DC", "대전DC"):
+        assert api(user_client, "POST", "/api/stockout", row_id=row_id, site=site, quantity=1).status_code == 200
+
+    count = lambda qs: user_client.get(f"/api/stockout{qs}").get_json()["count"]  # noqa: E731
+    assert count("?scope=mine") == 2
+    assert count("?sites=부산DC") == 1
+    assert count("?sites=서울IDC,대전DC") == 2
+    assert count("?site=대전") == 1
+    assert count("") == 3
+    assert count("?scope=mine&site=대전") == 1  # 자유 검색이 scope 보다 우선
+    assert user_client.get("/api/units?scope=mine").status_code == 200
+    assert user_client.get("/api/stockrequest?scope=mine").status_code == 200
+    assert user_client.get("/api/stockin?scope=mine").status_code == 200
 
 
 def test_admin_reset_password_forces_change(admin_client, app):
@@ -104,7 +132,7 @@ def test_register_with_email_and_site(admin_client, app):
               "role": "user", "email": "n@example.com", "site": "부산DC", "csrf_token": admin_client.csrf},
     )
     u = _user(app, "newbie")
-    assert u.email == "n@example.com" and u.site == "부산DC" and u.active is True
+    assert u.email == "n@example.com" and u.site_list == ["부산DC"] and u.active is True
 
 
 def test_login_logout_are_logged(client, app):

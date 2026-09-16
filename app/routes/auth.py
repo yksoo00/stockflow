@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .. import db, limiter
 from ..models import User
+from ..models.user import parse_site_list
 from .common import admin_required, log_action
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ def register():
         name = request.form.get("name", "").strip()
         position = request.form.get("position", "").strip()
         email = request.form.get("email", "").strip() or None
-        site = request.form.get("site", "").strip() or None
+        sites = parse_site_list(request.form.get("site", ""))
         # 역할은 폼에서 명시적으로 고른다. (예전의 "아이디에 admin 이 들어가면 관리자" 규칙 제거)
         role = request.form.get("role", "user").strip() or "user"
 
@@ -110,7 +111,7 @@ def register():
                 name=name,
                 position=position or None,
                 email=email,
-                site=site,
+                site=", ".join(sites) or None,
             )
 
             db.session.add(u)

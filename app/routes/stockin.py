@@ -7,6 +7,7 @@ from .. import db
 from ..models import DiskUnit, StockIn, User
 from ..utils.time import fmt, utcnow
 from .common import (
+    apply_site_filter,
     fmt_qty,
     lock_row,
     log_action,
@@ -195,7 +196,6 @@ def list_stockin():
 
     q = request.args.get("q", "").strip()
     source = request.args.get("source", "").strip()
-    site = request.args.get("site", "").strip()
 
     query = StockIn.query
 
@@ -214,8 +214,7 @@ def list_stockin():
     if source:
         query = query.filter(StockIn.source == source)
 
-    if site:
-        query = query.filter(StockIn.site.ilike(f"%{site}%"))
+    query = apply_site_filter(query, StockIn.site, request.args)
 
     total = query.count()
     total_pages = max((total + page_size - 1) // page_size, 1)

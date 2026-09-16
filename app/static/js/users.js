@@ -22,7 +22,7 @@ function rowHtml(u) {
         </select>
       </td>
       <td class="no-strike"><input class="inline-edit" data-field="email" type="email" value="${esc(u.email || '')}" placeholder="이메일"></td>
-      <td class="no-strike"><input class="inline-edit" data-field="site" value="${esc(u.site || '')}" placeholder="담당 사이트"></td>
+      <td class="no-strike"><input class="inline-edit" data-field="site" value="${esc((u.sites || []).join(', '))}" placeholder="담당 사이트 (쉼표 구분)" title="여러 개면 쉼표로 구분"></td>
       <td class="no-strike">${u.active ? '<span class="tag ok">활성</span>' : '<span class="tag danger">비활성</span>'}</td>
       <td class="no-strike">${esc(u.created_at || '')}</td>
       <td class="no-strike">
@@ -75,6 +75,7 @@ function bind(table) {
       try {
         const item = await patchUser(id, {[field]: value});
         Object.assign(original, item);
+        if (field === 'site') input.value = (item.sites || []).join(', ');
         showResultModal('저장되었습니다.', 'success');
         if (field === 'role') load();
       } catch (error) {

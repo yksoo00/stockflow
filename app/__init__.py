@@ -171,12 +171,12 @@ def create_app(test_config=None):
         """
         - pending_request_count / pending_stale_count:
           사이드바 '입고 요청' 메뉴의 미승인 건수 배지. 승인은 관리자만 하므로 관리자에게만 계산.
-        - user_site: 담당 사이트 (출고/입고/요청 목록의 기본 필터)
+        - user_sites: 담당 사이트 목록 (출고/입고/요청 목록의 기본 필터, 모달 선택지)
         """
-        ctx = {"pending_request_count": 0, "pending_stale_count": 0, "user_site": None}
+        ctx = {"pending_request_count": 0, "pending_stale_count": 0, "user_sites": []}
         if not current_user.is_authenticated:
             return ctx
-        ctx["user_site"] = getattr(current_user, "site", None)
+        ctx["user_sites"] = list(getattr(current_user, "site_list", []) or [])
         if current_user.role != "admin":
             return ctx
         try:
