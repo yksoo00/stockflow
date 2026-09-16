@@ -1,0 +1,20 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">AUDIT</span><h1>활동 로그</h1><p>모든 사용자의 출고·입고·입고요청·승인·물품도착·Excel 업로드/수정/삭제·계정 변경·로그인이 여기에 기록됩니다.</p></div></section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="logSearch" class="search" placeholder="작업, 상세 내용으로 검색">
+    <label class="date-field"><span>날짜</span><input id="logDate" type="date"></label>
+    <select id="logAction"><option value="">전체 작업</option></select>
+  </div>
+  <div class="table-wrap">
+    <table id="logTable">
+      <thead><tr><th>일시</th><th>사용자</th><th>작업</th><th>대상</th><th>상세</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="logMeta" class="result-meta"></div>
+  <div id="logPagination" class="pagination"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{url_for('static',filename='js/adminlog.js')}}"></script>{% endblock %}

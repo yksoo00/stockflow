@@ -1,0 +1,33 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">HISTORY</span><h1>출고 내역</h1><p>언제, 어느 사이트로, 몇 개를, 왜 출고했는지 전부 여기에 남습니다. 잘못 출고한 건은 <b>취소</b>로 수량을 되돌릴 수 있습니다.</p></div></section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="stockoutSearch" class="search" placeholder="Code, 품명, 사이트, 사유, 티켓번호, 담당자, 시리얼로 검색">
+    <input id="stockoutSite" class="search" style="max-width:220px" placeholder="사이트 필터" value="{{ user_site or '' }}" title="비우면 전체 사이트">
+    <label class="date-field"><span>날짜</span><input id="stockoutDate" type="date"></label>
+    <label class="check-field"><input type="checkbox" id="stockoutShowCancelled" checked> 취소 건 표시</label>
+  </div>
+  {% if user_site %}<div class="sheet-help">담당 사이트 <b>{{ user_site }}</b> 기준으로 먼저 보여줍니다. 사이트 필터를 비우면 전체를 봅니다.</div>{% endif %}
+  <div class="table-wrap">
+    <table id="stockoutTable">
+      <thead><tr><th>일시</th><th>Code</th><th>품명</th><th>사이트</th><th>수량</th><th>사유</th><th>티켓</th><th>담당자</th><th>처리자</th><th>작업</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="stockoutMeta" class="result-meta"></div>
+  <div id="stockoutPagination" class="pagination"></div>
+</section>
+
+<div id="cancelModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><h3>출고 취소</h3><button type="button" class="modal-close" id="cancelModalClose">✕</button></div>
+    <div class="modal-body" id="cancelModalBody"></div>
+    <div class="modal-foot">
+      <button type="button" class="ghost" id="cancelModalDismiss">닫기</button>
+      <button type="button" class="danger" id="cancelModalSubmit">취소하고 수량 되돌리기</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/stockout.js') }}"></script>{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head">
+  <div><span class="eyebrow">ADMIN</span><h1>사용자 관리</h1><p>역할 변경, 이메일·담당 사이트 편집, 비밀번호 초기화, 계정 비활성화. 셀을 클릭해 바로 수정하고 포커스를 벗어나면 저장됩니다.</p></div>
+  <a class="primary" href="{{ url_for('auth.register') }}">+ 사용자 추가</a>
+</section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="userSearch" class="search" placeholder="아이디, 이름, 이메일, 사이트로 검색">
+  </div>
+  <div class="table-wrap">
+    <table id="userTable">
+      <thead><tr><th>아이디</th><th>이름</th><th>직책</th><th>역할</th><th>이메일</th><th>담당 사이트</th><th>상태</th><th>생성일</th><th>작업</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="userMeta" class="result-meta"></div>
+</section>
+
+<div id="resetModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><h3>임시 비밀번호</h3><button type="button" class="modal-close" id="resetModalClose">✕</button></div>
+    <div class="modal-body" id="resetModalBody"></div>
+    <div class="modal-foot"><button type="button" class="primary" id="resetModalOk">확인</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.ROLES = {{ roles | tojson }};</script><script src="{{ url_for('static', filename='js/users.js') }}"></script>{% endblock %}

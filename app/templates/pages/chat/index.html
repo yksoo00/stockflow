@@ -1,0 +1,17 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">AI ASSISTANT</span><h1>재고 AI 채팅</h1><p>Excel 하나를 선택하면 해당 원본만 근거로 자연어 재고 검색과 변경 제안을 받을 수 있습니다.</p></div></section>
+<section class="chat-layout">
+  <aside class="panel chat-context">
+    <h3>검색 범위</h3>
+    <label>Excel<select id="chatFile"><option value="">전체 Excel</option></select></label>
+    <label>Sheet<select id="chatSheet"><option value="">전체 Sheet</option></select></label>
+    <div class="hint">AI는 DB에 저장된 재고만 근거로 답합니다. 수량/비고 변경은 반드시 확인 후 적용됩니다.</div>
+  </aside>
+  <section class="panel chat-panel">
+    <div id="chatMessages" class="chat-messages"><div class="chat-bubble assistant">안녕하세요. 예: <b>DELL R740 수량 알려줘</b>, <b>품번 ABC123 수량을 1개로 바꿔줘</b></div></div>
+    <form id="chatForm" class="chat-form"><input id="chatInput" autocomplete="off" placeholder="재고에 대해 자연어로 질문하세요…"><button class="primary">전송</button></form>
+  </section>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{url_for('static',filename='js/chat.js')}}"></script>{% endblock %}

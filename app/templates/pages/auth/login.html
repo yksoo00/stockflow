@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>StockFlow {{ '사용자 추가' if register else '로그인' }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="auth">
+<div class="auth-card">
+  <div class="brand center"><span class="brand-dot"></span>StockFlow</div>
+  <h1>{{ '계정 만들기' if register else '다시 오셨네요' }}</h1>
+  <p>{{ '사내 재고관리 계정을 생성하세요.' if register else '재고 현황을 안전하게 관리하세요.' }}</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if not register and request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}">{% endif %}
+    {% if register %}
+    <label>이름<input name="name" autocomplete="name" required value="{{ request.form.get('name', '') }}"></label>
+    <label>직책<input name="position" autocomplete="organization-title" placeholder="예: 사원, 대리, 팀장" value="{{ request.form.get('position', '') }}"></label>
+    <label>이메일 (알림용, 선택)<input type="email" name="email" autocomplete="email" placeholder="name@company.com" value="{{ request.form.get('email', '') }}"></label>
+    <label>담당 사이트 (선택)<input name="site" placeholder="예: 서울IDC" value="{{ request.form.get('site', '') }}"></label>
+    <label>역할
+      <select name="role">
+        {% for r in roles %}<option value="{{ r }}" {% if request.form.get('role', 'user') == r %}selected{% endif %}>{{ '관리자' if r == 'admin' else '일반 사용자' }}</option>{% endfor %}
+      </select>
+    </label>
+    {% endif %}
+    <label>아이디<input name="username" autocomplete="username" required minlength="3" value="{{ request.form.get('username', '') }}"></label>
+    <label>비밀번호<input type="password" name="password" autocomplete="{{ 'new-password' if register else 'current-password' }}" required {% if register %}minlength="8"{% endif %}></label>
+    <button class="primary wide">{{ '계정 생성' if register else '로그인' }}</button>
+  </form>
+  {% if register %}
+  <a class="auth-link" href="{{ url_for('main.dashboard') }}">← 대시보드로 돌아가기</a>
+  {% else %}
+  <span class="auth-link">비밀번호를 잊으셨나요? 관리자에게 문의하세요</span>
+  {% endif %}
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<script id="flash-data" type="application/json">{{ messages | tojson }}</script>{% endif %}{% endwith %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

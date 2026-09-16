@@ -1,0 +1,35 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">ACCOUNT</span><h1>내 계정</h1><p>{{ current_user.name or current_user.username }} · {{ '관리자' if current_user.role == 'admin' else '일반 사용자' }}{% if current_user.position %} · {{ current_user.position }}{% endif %}</p></div></section>
+
+{% if current_user.must_change_password %}
+<section class="panel" style="border-color:#fecaca;background:#fff5f5">
+  <b style="color:#b91c1c">임시 비밀번호로 로그인했습니다.</b> 아래에서 새 비밀번호를 설정해야 다른 기능을 정상적으로 쓸 수 있습니다.
+</section>
+{% endif %}
+
+<div class="two-col">
+  <section class="panel">
+    <div class="panel-head"><div><h2>비밀번호 변경</h2><p>8자 이상. 변경하면 활동 로그에 남습니다.</p></div></div>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="form" value="password">
+      <label>현재 비밀번호<input type="password" name="current_password" autocomplete="current-password" required></label>
+      <label>새 비밀번호<input type="password" name="new_password" autocomplete="new-password" minlength="8" required></label>
+      <label>새 비밀번호 확인<input type="password" name="confirm_password" autocomplete="new-password" minlength="8" required></label>
+      <div class="form-actions"><button class="primary">비밀번호 변경</button></div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2>알림 · 담당 사이트</h2><p>이메일을 넣으면 입고요청 승인/도착 알림을 받습니다{% if current_user.role == 'admin' %} (관리자는 입고요청·저재고 알림도){% endif %}. 담당 사이트는 출고/입고/요청 목록의 기본 필터가 됩니다.</p></div></div>
+    <form method="post" class="form-stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="form" value="profile">
+      <label>이메일<input type="email" name="email" value="{{ current_user.email or '' }}" placeholder="name@company.com" autocomplete="email"></label>
+      <label>담당 사이트<input name="site" value="{{ current_user.site or '' }}" placeholder="예: 서울IDC (비우면 전체)"></label>
+      <div class="form-actions"><button class="primary">저장</button></div>
+    </form>
+  </section>
+</div>
+{% endblock %}

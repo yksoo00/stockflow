@@ -1,0 +1,26 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">HISTORY</span><h1>입고 내역</h1><p>수동입고, 입고요청 승인 후 반영된 입고, 출고 취소로 되돌아온 수량이 전부 여기에 남습니다.</p></div></section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="stockinSearch" class="search" placeholder="Code, 품명, 사이트, 사유, 시리얼로 검색">
+    <input id="stockinSite" class="search" style="max-width:220px" placeholder="사이트 필터" value="{{ user_site or '' }}" title="비우면 전체 사이트">
+    <select id="stockinSource">
+      <option value="">전체</option>
+      <option value="manual">수동</option>
+      <option value="auto_request">자동(요청승인)</option>
+      <option value="cancel_out">출고취소 원복</option>
+    </select>
+  </div>
+  {% if user_site %}<div class="sheet-help">담당 사이트 <b>{{ user_site }}</b> 기준으로 먼저 보여줍니다. 사이트 필터를 비우면 전체를 봅니다.</div>{% endif %}
+  <div class="table-wrap">
+    <table id="stockinTable">
+      <thead><tr><th>일시</th><th>구분</th><th>Code</th><th>품명</th><th>사이트</th><th>수량</th><th>사유</th><th>처리자</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="stockinMeta" class="result-meta"></div>
+  <div id="stockinPagination" class="pagination"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/stockin.js') }}"></script>{% endblock %}

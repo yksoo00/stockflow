@@ -1,0 +1,25 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">EXCEL</span><h1>{{file.original_filename}}</h1><p>전체 Sheet를 통합 검색하거나 원하는 Sheet만 선택할 수 있습니다.</p></div><div class="page-actions"><a class="primary" href="/files/{{file.id}}/export">수정본 Excel 내보내기</a><span class="status {{file.processing_status}}">{{file.processing_status}}</span>{% if current_user.role == 'admin' %}<form method="post" action="/files/{{file.id}}/delete" onsubmit="return confirm('정말 삭제하겠습니까? 관련 재고 데이터도 함께 삭제됩니다.') && confirm('정말로 삭제하겠습니까? 이 작업은 되돌릴 수 없습니다.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="danger ghost" type="submit">Excel 삭제</button></form>{% endif %}</div></section>
+<section class="panel">
+  <div class="toolbar inventory-toolbar">
+    <input id="sheetSearch" class="search" placeholder="이 Excel 전체 Sheet 검색">
+    <div class="sheet-picker" id="sheetPicker"><button type="button" class="ghost sheet-picker-button">Sheet 선택 <span id="sheetSelectionText">전체</span></button><div class="sheet-picker-menu" id="sheetPickerMenu"></div></div>
+    {% if current_user.role == 'admin' %}<button class="ghost" id="addColumn">+ 컬럼 추가</button>
+    <button class="ghost" id="editSheetBtn">선택한 Sheet 수정하기</button>{% endif %}
+  </div>
+  <div id="dynamicFilters" class="filters"></div>
+  <div class="sheet-help">Sheet를 선택하면 해당 Sheet만 검색합니다. 선택을 모두 해제하면 전체 Sheet를 검색합니다. 각 Sheet의 <b>수정</b> 버튼으로 바로 수정 모드로 들어갈 수 있습니다.</div><div class="sheet-tabs" id="sheetTabs"></div>
+  <div class="table-wrap"><table id="sheetTable"><thead></thead><tbody></tbody></table></div>
+  <div id="resultMeta" class="result-meta"></div>
+  <div id="pagination" class="pagination"></div>
+</section>
+<div id="rowModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><h3>재고 상세</h3><button type="button" class="modal-close" id="rowModalClose">✕</button></div>
+    <div class="modal-body" id="rowModalBody"></div>
+    <div class="modal-foot" id="rowModalFoot"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.FILE_ID={{file.id}};</script><script src="{{url_for('static',filename='js/sheet.js')}}"></script>{% endblock %}

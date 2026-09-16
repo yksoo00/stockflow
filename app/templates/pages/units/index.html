@@ -1,0 +1,36 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">TRACKING</span><h1>시리얼 추적</h1><p>입고·출고 때 적은 시리얼번호로 디스크 개체 하나하나가 지금 재고인지, 어느 사이트로 나갔는지 확인합니다.</p></div></section>
+<section class="cards">
+  <div class="card"><span>재고 상태</span><strong id="unitsInStock">–</strong><small>시리얼 등록된 디스크</small></div>
+  <div class="card"><span>출고 상태</span><strong id="unitsOut">–</strong><small>사이트에 나가 있는 디스크</small></div>
+</section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="unitSearch" class="search" placeholder="시리얼, 코드, 품명, 사이트로 검색">
+    <select id="unitStatus">
+      <option value="">전체 상태</option>
+      <option value="in_stock">재고</option>
+      <option value="out">출고</option>
+    </select>
+    <input id="unitSite" class="search" style="max-width:220px" placeholder="사이트 필터" value="{{ user_site or '' }}">
+  </div>
+  <div class="table-wrap">
+    <table id="unitTable">
+      <thead><tr><th>시리얼</th><th>코드</th><th>품명</th><th>상태</th><th>사이트</th><th>최근 변경</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div id="unitMeta" class="result-meta"></div>
+  <div id="unitPagination" class="pagination"></div>
+</section>
+
+<div id="unitModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head"><h3>시리얼 이력</h3><button type="button" class="modal-close" id="unitModalClose">✕</button></div>
+    <div class="modal-body" id="unitModalBody"></div>
+    <div class="modal-foot"><button type="button" class="ghost" id="unitModalOk">닫기</button></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/units.js') }}"></script>{% endblock %}

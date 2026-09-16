@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>StockFlow</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+</head>
+<body>
+<button type="button" class="nav-toggle" id="navToggle" aria-label="메뉴">☰</button>
+<div class="nav-backdrop" id="navBackdrop"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><span class="brand-dot"></span>StockFlow</div>
+  <nav>
+    <a href="{{ url_for('main.dashboard') }}">대시보드</a>
+    <a href="{{ url_for('files.files') }}">Excel 원본</a>
+    <a href="{{ url_for('stockout.stockout_page') }}">출고 내역</a>
+    <a href="{{ url_for('stockin.stockin_page') }}">입고 내역</a>
+    <a href="{{ url_for('stockrequest.stockrequest_page') }}" class="nav-with-badge">입고 요청<span id="pendingBadge" class="nav-badge {% if pending_stale_count %}stale{% endif %}" {% if not pending_request_count %}hidden{% endif %} title="{% if pending_stale_count %}{{ pending_stale_count }}건이 오래 방치됨 · {% endif %}승인 대기 {{ pending_request_count }}건">{{ pending_request_count }}</span></a>
+    <a href="{{ url_for('main.units_page') }}">시리얼 추적</a>
+    <a href="{{ url_for('main.chat') }}">AI 채팅</a>
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('files.upload') }}">Excel 업로드</a>
+    <a href="{{ url_for('users.users_page') }}">사용자 관리</a>
+    <a href="{{ url_for('adminlog.adminlog_page') }}">활동 로그</a>
+    {% endif %}
+  </nav>
+  <div class="side-bottom">
+    <a href="{{ url_for('users.account') }}">내 계정</a>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link-button">로그아웃</button>
+    </form>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div class="crumb">사내 재고관리</div>
+    <div class="user">{{ current_user.name or current_user.username }}{% if current_user.position %} · {{ current_user.position }}{% endif %}{% if user_site %} · <span class="user-site" title="담당 사이트">{{ user_site }}</span>{% endif %}</div>
+  </header>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<script id="flash-data" type="application/json">{{ messages | tojson }}</script>{% endif %}{% endwith %}
+  {% block content %}{% endblock %}
+</main>
+<script>
+window.IS_ADMIN = {{ (current_user.is_authenticated and current_user.role == 'admin') | tojson }};
+window.USER_ID = {{ (current_user.id if current_user.is_authenticated else none) | tojson }};
+window.USER_SITE = {{ (user_site or '') | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

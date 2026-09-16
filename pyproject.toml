@@ -1,0 +1,24 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = [
+    # 3.12 의 datetime.utcnow() 경고 — B단계(시간대 정리)에서 제거 예정
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", "uploads", "logs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = [
+    "E501",  # 긴 로그 메시지/한글 주석 허용
+    "E712",  # SQLAlchemy 의 `== False` 비교는 의도된 것
+    "E711",  # SQLAlchemy 의 `!= None` 비교는 의도된 것
+    "UP038", # isinstance(x, (A, B)) 형태 유지
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 패키지 재export
+"tests/conftest.py" = ["E402"]  # 환경변수 세팅 후 import

@@ -1,0 +1,14 @@
+{% extends 'layouts/base.html' %}
+{% block content %}
+<section class="page-head"><div><span class="eyebrow">PRICE CHECK</span><h1>eBay 최저가 조회</h1><p>Code <b>{{code}}</b>의 eBay 매물을 가격(배송비 포함) 낮은 순으로 보여줍니다.</p></div><a class="ghost" href="{{url_for('main.dashboard')}}">← 대시보드로</a></section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="ebaySearch" class="search" value="{{code}}" placeholder="Code 또는 품번으로 검색">
+    <button id="ebaySearchBtn" class="primary" type="button">검색</button>
+  </div>
+  <div id="ebayMeta" class="result-meta"></div>
+  <div id="ebayResults" class="ebay-grid"></div>
+  <div id="ebayPagination" class="pagination"></div>
+</section>
+{% endblock %}
+{% block scripts %}<script>window.EBAY_CODE={{code|tojson}};</script><script src="{{url_for('static',filename='js/ebay.js')}}"></script>{% endblock %}

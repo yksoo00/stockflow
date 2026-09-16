@@ -1,0 +1,26 @@
+# 환경/비밀
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# 런타임 산출물 (절대 커밋하지 않음)
+logs/
+*.log
+uploads/
+chroma/
+instance/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
