@@ -38,6 +38,39 @@ def _require_env(name):
     return value
 
 
+def _bootstrap_admin():
+    """Create the configured first admin once; never alter an existing account."""
+    username = os.getenv("ADMIN_USERNAME", "admin").strip()
+    password = os.getenv("ADMIN_PASSWORD", "")
+    name = os.getenv("ADMIN_NAME", "관리자").strip() or username
+
+    if not password:
+        return
+    if len(username) < 3 or len(password) < 8:
+        raise RuntimeError("ADMIN_USERNAME 은 3자 이상, ADMIN_PASSWORD 는 8자 이상이어야 합니다.")
+
+    from werkzeug.security import generate_password_hash
+
+    from .models import User
+
+    if User.query.filter_by(role="admin").first():
+        logger.info("Bootstrap admin skipped; an admin account already exists")
+        return
+    if User.query.filter_by(username=username).first():
+        raise RuntimeError("초기 관리자 아이디가 기존 일반 사용자와 겹칩니다.")
+
+    db.session.add(
+        User(
+            username=username,
+            password_hash=generate_password_hash(password),
+            role="admin",
+            name=name,
+        )
+    )
+    db.session.commit()
+    logger.info("Bootstrap admin account created | username=%s", username)
+
+
 def _api_request():
     """JSON API 요청인지(페이지 요청이 아닌지) 판단한다. 에러 응답 형식을 고를 때 쓴다."""
     return request.path.startswith("/api/") or request.is_json
@@ -213,6 +246,9 @@ def create_app(test_config=None):
         with app.app_context():
             upgrade()
         logger.info("Database migrations applied")
+
+    with app.app_context():
+        _bootstrap_admin()
 
     logger.info("Flask application initialized")
     return app

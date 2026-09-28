@@ -2,8 +2,9 @@
 
 import pytest
 
-from app import create_app
+from app import _bootstrap_admin, create_app, db
 from app.models import User
+from werkzeug.security import check_password_hash
 
 from .conftest import csrf_token_from, login
 
@@ -45,6 +46,31 @@ def test_login_with_csrf_token_succeeds(client):
     resp = login(client, "admin", "adminpass123")
     assert resp.status_code == 302
     assert resp.headers["Location"].endswith("/")
+
+
+def test_bootstrap_admin_is_created_only_once(monkeypatch):
+    monkeypatch.setenv("ADMIN_USERNAME", "first-admin")
+    monkeypatch.setenv("ADMIN_PASSWORD", "strong-password-123")
+    monkeypatch.setenv("ADMIN_NAME", "초기 관리자")
+    app = create_app(
+        {
+            "TESTING": True,
+            "SECRET_KEY": "test-secret-key-0123456789abcdef",
+            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
+        }
+    )
+
+    with app.app_context():
+        admin = User.query.filter_by(username="first-admin").one()
+        assert admin.role == "admin"
+        assert admin.name == "초기 관리자"
+        assert check_password_hash(admin.password_hash, "strong-password-123")
+
+        monkeypatch.setenv("ADMIN_PASSWORD", "replacement-password-456")
+        _bootstrap_admin()
+        db.session.refresh(admin)
+        assert check_password_hash(admin.password_hash, "strong-password-123")
+        assert User.query.filter_by(role="admin").count() == 1
 
 
 def test_json_api_without_csrf_header_is_rejected(user_client):
