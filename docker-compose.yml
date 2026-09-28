@@ -32,11 +32,12 @@ services:
       # 컨테이너 안에서는 localhost 가 아니라 mysql 서비스 이름으로 접속해야 한다.
       DATABASE_URL: mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}?charset=utf8mb4
       LOG_CONSOLE: "1"
+      PORT: ${PORT:-51000}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD must be set in .env}
       ADMIN_NAME: ${ADMIN_NAME:-관리자}
     ports:
-      - "8000:8000"
+      - "${PORT:-51000}:${PORT:-51000}"
     volumes:
       - uploads_data:/app/uploads
       - logs_data:/app/logs

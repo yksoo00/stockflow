@@ -47,7 +47,7 @@ cp .env.example .env
 
 ```bash
 docker compose up -d --build
-# http://localhost:8000
+# http://localhost:51000
 ```
 
 MySQL과 앱이 함께 뜹니다. 업로드 파일과 로그는 각각 `uploads_data`, `logs_data` 볼륨에 저장됩니다.
@@ -64,7 +64,7 @@ pip install -r requirements.txt
 # MySQL만 컨테이너로
 docker compose up -d mysql
 
-python run.py                   # waitress, http://localhost:8000
+python run.py                   # waitress, http://localhost:51000
 # 개발 중 자동 리로드가 필요하면
 FLASK_DEBUG=1 python run.py
 ```

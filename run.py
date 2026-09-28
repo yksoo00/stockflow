@@ -6,7 +6,7 @@ StockFlow 진입점.
 
 환경변수:
     HOST          바인드 주소 (기본 0.0.0.0)
-    PORT          포트 (기본 8000)
+    PORT          포트 (기본 51000)
     WAITRESS_THREADS  waitress 워커 스레드 수 (기본 8)
 """
 
@@ -19,7 +19,7 @@ app = create_app()
 
 def main():
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "51000"))
 
     if os.getenv("FLASK_DEBUG", "").strip() in {"1", "true", "True"}:
         app.run(host=host, port=port, debug=True)

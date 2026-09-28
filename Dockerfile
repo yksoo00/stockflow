@@ -24,10 +24,10 @@ RUN useradd --create-home --shell /bin/false stockflow \
     && chown -R stockflow:stockflow /app
 USER stockflow
 
-EXPOSE 8000
+EXPOSE 51000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS http://localhost:8000/health || exit 1
+    CMD curl -fsS "http://localhost:${PORT:-51000}/health" || exit 1
 
 # run.py 는 waitress(프로덕션 WSGI 서버)로 기동한다. Flask 개발 서버는 FLASK_DEBUG=1 일 때만.
 CMD ["python", "run.py"]
