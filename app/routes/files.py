@@ -40,7 +40,7 @@ from ..models import (
 from ..services.excel.exporter import export_excel, export_excel_from_db
 from ..services.excel.parser import file_sha256, parse_workbook
 from ..services.inventory.normalize import infer_field, normalize_row, to_number
-from .common import admin_required, log_action, sync_group_quantity
+from .common import admin_required, ensure_required_column, log_action, sync_group_quantity
 
 files_bp = Blueprint("files", __name__)
 logger = logging.getLogger(__name__)
@@ -503,6 +503,7 @@ def _ingest_workbook(ef, parsed):
     """
     # 1) 시트/테이블/컬럼 먼저 만들고, 행은 그룹 키를 모아둔 뒤 마지막에 한꺼번에 넣는다.
     pending_rows = []  # (sheet, table, row_number, data, normalized, group_key)
+    sheets = []
 
     for si, s in enumerate(parsed):
         es = ExcelSheet(
@@ -515,6 +516,7 @@ def _ingest_workbook(ef, parsed):
         )
         db.session.add(es)
         db.session.flush()
+        sheets.append(es)
 
         for t in s["tables"]:
             headers = t["headers"]
@@ -603,6 +605,7 @@ def _ingest_workbook(ef, parsed):
                 model=n.get("model"),
                 capacity=n.get("capacity"),
                 quantity=q,
+                required_quantity=n.get("required_quantity"),
                 location=n.get("location"),
                 status=n.get("status"),
                 inventory_group_id=group.id,
@@ -610,6 +613,12 @@ def _ingest_workbook(ef, parsed):
         )
 
     db.session.flush()
+
+    # 4) 필수수량 열 — 엑셀에 없으면 맨 끝에 만들고 빈 칸은 기본값(2)으로
+    for es in sheets:
+        ensure_required_column(es)
+    db.session.flush()
+
     return len(pending_rows)
 
 

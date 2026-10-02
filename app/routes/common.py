@@ -8,7 +8,13 @@ from flask_login import current_user, login_required
 from .. import db
 from ..models import AdminLog, DiskUnit, ExcelSheet, InventoryRow, SheetColumn
 from ..models.user import parse_site_list
-from ..services.inventory.normalize import find_quantity_key, normalize_row
+from ..services.inventory.normalize import (
+    REQUIRED_QUANTITY_COLUMN,
+    find_quantity_key,
+    infer_field,
+    normalize_row,
+    to_number,
+)
 from ..utils.time import fmt
 
 logger = logging.getLogger(__name__)
@@ -24,15 +30,68 @@ def low_stock_threshold():
         return 1.0
 
 
+def default_required_quantity():
+    """
+    필수수량 칸이 비어 있을 때의 기본값 = 예전 전역 기준(임계값 1 → 2개로 채움)과 같은 값.
+    """
+    return low_stock_threshold() + 1
+
+
+def required_quantity_of(row):
+    if row.required_quantity is not None:
+        return row.required_quantity
+    return default_required_quantity()
+
+
 def low_stock_filter(query):
-    """수량이 임계값 이하이고 용량 정보가 있는(=디스크로 보이는) 행만."""
+    """수량이 필수수량보다 적고 용량 정보가 있는(=디스크로 보이는) 행만."""
     return query.filter(
         InventoryRow.is_deleted == False,  # noqa: E712
         InventoryRow.quantity.isnot(None),
-        InventoryRow.quantity <= low_stock_threshold(),
+        InventoryRow.quantity
+        < db.func.coalesce(InventoryRow.required_quantity, default_required_quantity()),
         InventoryRow.capacity.isnot(None),
         InventoryRow.capacity != "",
     )
+
+
+def ensure_required_column(sheet):
+    """
+    시트에 필수수량 열이 없으면 맨 끝 열로 만들고, 빈 칸은 기본값으로 채운다.
+    시트 화면에 보이고 그 자리에서 고칠 수 있게 하기 위함이다. 행이 없는 시트는 건드리지 않는다.
+    """
+    rows = InventoryRow.query.filter_by(sheet_id=sheet.id, is_deleted=False).all()
+    if not rows:
+        return
+
+    columns = SheetColumn.query.filter_by(sheet_id=sheet.id).all()
+    column = next(
+        (c for c in columns if infer_field(c.original_name or "") == "required_quantity"), None
+    )
+    if column is None:
+        # table_id 가 있어야 내보내기 때 헤더 행에 열 이름이 써진다.
+        table_ids = [c.table_id for c in columns if c.table_id]
+        column = SheetColumn(
+            sheet_id=sheet.id,
+            table_id=min(table_ids) if table_ids else rows[0].table_id,
+            column_index=max([c.column_index or 0 for c in columns] or [0]) + 1,
+            original_name=REQUIRED_QUANTITY_COLUMN,
+            normalized_name="required_quantity",
+            data_type="number",
+            filter_type="range",
+        )
+        db.session.add(column)
+
+    default = default_required_quantity()
+    default_cell = int(default) if float(default).is_integer() else default
+    for row in rows:
+        value = to_number((row.data_json or {}).get(column.original_name))
+        if value is None:
+            data = dict(row.data_json or {})
+            data[column.original_name] = default_cell
+            row.data_json = data
+            value = default
+        row.required_quantity = value
 
 
 def schema_columns(file_id=None, sheet_id=None, sheet_ids=None):
@@ -186,6 +245,7 @@ def set_row_quantity(row, new_qty):
         row.manufacturer = n.get("manufacturer", row.manufacturer)
         row.model = n.get("model", row.model)
         row.capacity = n.get("capacity", row.capacity)
+        row.required_quantity = n.get("required_quantity", row.required_quantity)
         row.location = n.get("location", row.location)
         row.status = n.get("status", row.status)
 

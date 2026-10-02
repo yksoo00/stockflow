@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, render_template
 from flask_login import login_required
 
 from ..models import ExcelFile, InventoryRow
-from .common import low_stock_filter, low_stock_threshold
+from .common import low_stock_filter
 
 main_bp = Blueprint("main", __name__)
 
@@ -26,7 +26,6 @@ def dashboard():
         files=files,
         total=total,
         low=low,
-        low_threshold=low_stock_threshold(),
     )
 
 

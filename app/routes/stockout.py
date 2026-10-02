@@ -14,8 +14,8 @@ from .common import (
     fmt_qty,
     lock_row,
     log_action,
-    low_stock_threshold,
     parse_serials,
+    required_quantity_of,
     serial_snapshot,
     set_row_quantity,
     user_label,
@@ -75,6 +75,19 @@ def _take_units(row, serials, *, stock_out):
         unit.status = DiskUnit.STATUS_OUT
         unit.site = stock_out.site
         unit.stock_out = stock_out
+
+
+def _in_flight_request_quantity(row_id):
+    """아직 재고에 반영되지 않은(요청/승인 상태) 입고요청 수량 합계."""
+    total = (
+        db.session.query(db.func.coalesce(db.func.sum(StockRequest.quantity), 0.0))
+        .filter(
+            StockRequest.inventory_row_id == row_id,
+            StockRequest.status.in_(("requested", "approved")),
+        )
+        .scalar()
+    )
+    return float(total or 0)
 
 
 @stockout_bp.post("/api/stockout")
@@ -150,25 +163,34 @@ def create_stockout():
             db.session.rollback()
             return jsonify({"error": str(exc)}), 400
 
-    # 4) 자동 입고요청 — 출고 후 재고가 임계값 이하로 떨어지면 매번 새 건으로 생성.
-    #    요청수량 = (임계값+1) - 현재수량  →  기본 임계값 1 이면 1개 남았을 때 1개, 0개면 2개
-    threshold = low_stock_threshold()
-    auto_request_created = new_qty <= threshold
+    # 4) 자동 입고요청 — 출고 후 재고가 그 행의 필수수량보다 적으면 필수수량까지 모자란 만큼.
+    #    필수 2: 1개 남으면 1개, 0개면 2개 / 필수 1: 1개 남으면 없음, 0개면 1개.
+    #    아직 도착 전인 요청(요청/승인)이 있으면 그만큼 빼서 요청이 겹쳐 쌓이지 않게 한다.
+    required = required_quantity_of(row)
     auto_request = None
 
-    if auto_request_created:
-        auto_request = StockRequest(
-            inventory_row_id=row.id,
-            identifier=row.identifier,
-            item_name=row.item_name,
-            site=site,
-            quantity=max((threshold + 1) - new_qty, 1),
-            reason=f"출고 후 재고 {fmt_qty(new_qty)}개 — 자동 생성된 입고요청",
-            source="auto",
-            status="requested",
-            requested_by_id=current_user.id,
-        )
-        db.session.add(auto_request)
+    if new_qty < required:
+        in_flight = _in_flight_request_quantity(row.id)
+        shortage = required - new_qty - in_flight
+        if shortage > 0:
+            auto_request = StockRequest(
+                inventory_row_id=row.id,
+                identifier=row.identifier,
+                item_name=row.item_name,
+                site=site,
+                quantity=shortage,
+                reason=(
+                    f"출고 후 재고 {fmt_qty(new_qty)}개 / 필수수량 {fmt_qty(required)}개"
+                    + (f" (진행 중 요청 {fmt_qty(in_flight)}개 제외)" if in_flight else "")
+                    + " — 자동 생성된 입고요청"
+                ),
+                source="auto",
+                status="requested",
+                requested_by_id=current_user.id,
+            )
+            db.session.add(auto_request)
+
+    auto_request_created = auto_request is not None
 
     db.session.flush()
 

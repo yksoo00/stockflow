@@ -26,6 +26,7 @@ def _apply_normalized(row, data):
     row.model = n.get("model")
     row.capacity = n.get("capacity")
     row.quantity = n.get("quantity")
+    row.required_quantity = n.get("required_quantity")
     row.location = n.get("location")
     row.status = n.get("status")
 
