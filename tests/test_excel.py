@@ -210,3 +210,22 @@ def test_duplicate_upload_with_existing_original_is_still_blocked(admin_client, 
     assert "duplicate_of=" in resp.headers["Location"]
     with app.app_context():
         assert ExcelFile.query.count() == 1
+
+
+def test_delete_from_file_list_page_passes_csrf(admin_client, app):
+    """목록(/files) 화면의 삭제 form 이 CSRF 토큰을 실어 보내야 한다 (예전엔 빠져서 400)."""
+    import re
+
+    _upload(admin_client, _xlsx(ROWS))
+    with app.app_context():
+        file_id = ExcelFile.query.one().id
+
+    html = admin_client.get("/files").get_data(as_text=True)
+    form = re.search(rf'<form method="post" action="/files/{file_id}/delete".*?</form>', html, re.S).group(0)
+    token = re.search(r'name="csrf_token" value="([^"]+)"', form)
+    assert token, form
+
+    resp = admin_client.post(f"/files/{file_id}/delete", data={"csrf_token": token.group(1)})
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/files")
+    with app.app_context():
+        assert ExcelFile.query.count() == 0
