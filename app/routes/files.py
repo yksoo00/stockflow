@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import uuid
 import zipfile
 from pathlib import Path
@@ -432,6 +433,39 @@ def _upload_root():
     return root
 
 
+def _restore_missing_originals(digest, uploaded_path, safe_stem):
+    """
+    file_hash 가 같은 ExcelFile 중 원본 파일이 서버에 없는 것에 uploaded_path 의 사본을 붙인다.
+    기록마다 따로 복사한다 (한 기록을 삭제할 때 원본을 지우므로 파일을 공유하면 안 된다).
+    복구한 ExcelFile 목록을 돌려준다.
+    """
+    restored = []
+    for ef in ExcelFile.query.filter_by(file_hash=digest).order_by(ExcelFile.id).all():
+        if _resolve_upload_file(ef) is not None:
+            continue
+
+        suffix = Path(ef.original_filename or "").suffix.lower()
+        if suffix not in {".xlsx", ".xlsm"}:
+            suffix = uploaded_path.suffix.lower()
+        target = uploaded_path.parent / f"{uuid.uuid4().hex}_{safe_stem}{suffix}"
+        shutil.copyfile(uploaded_path, target)
+
+        ef.stored_filename = target.name
+        ef.file_path = str(target.resolve())
+        log_action(
+            "excel_restore",
+            detail=f"{ef.original_filename} 원본 파일 복구 (같은 내용 재업로드)",
+            target_type="excel_file",
+            target_id=ef.id,
+        )
+        restored.append(ef)
+        logger.info("Excel original restored | file_id=%s | path=%s", ef.id, target)
+
+    if restored:
+        db.session.commit()
+    return restored
+
+
 def _group_key(normalized, raw_data):
     """
     InventoryGroup.group_key (B-12): 정규화 필드를 이어붙인 뒤 SHA-256.
@@ -625,6 +659,23 @@ def upload():
         # -------------------------------------------------
         digest = file_sha256(path)
         duplicate = ExcelFile.query.filter_by(file_hash=digest).first()
+
+        # 같은 내용의 기존 기록인데 원본 파일이 이 서버에 없으면(로컬 실행 ↔ Docker 처럼
+        # 같은 DB 를 쓰는 다른 서버에서 올렸던 경우) 방금 받은 파일로 원본을 되살린다.
+        # 예전엔 중복으로 막고 받은 파일을 지워서, 원본을 다시 올려도 내보내기가 계속 실패했다.
+        restored = _restore_missing_originals(digest, path, safe_stem)
+
+        if restored and not allow_duplicate:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+            flash(
+                f"원본 파일을 복구했습니다: {restored[0].original_filename}. "
+                "이제 원본 서식을 유지한 수정본 내보내기가 됩니다.",
+                "success",
+            )
+            return redirect(url_for("files.file_detail", file_id=restored[0].id))
 
         if duplicate and not allow_duplicate:
             try:

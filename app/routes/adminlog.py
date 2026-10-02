@@ -17,6 +17,7 @@ ACTION_LABEL = {
     "excel_upload": "Excel 업로드",
     "excel_delete": "Excel 삭제",
     "excel_export": "Excel 수정본 내보내기",
+    "excel_restore": "Excel 원본 복구",
     "row_edit": "재고 수정",
     "row_delete": "재고 행 삭제",
     "column_add": "컬럼 추가",
