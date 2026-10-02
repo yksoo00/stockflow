@@ -36,7 +36,7 @@ from ..models import (
     StockOut,
     StockRequest,
 )
-from ..services.excel.exporter import export_excel
+from ..services.excel.exporter import export_excel, export_excel_from_db
 from ..services.excel.parser import file_sha256, parse_workbook
 from ..services.inventory.normalize import infer_field, normalize_row, to_number
 from .common import admin_required, log_action, sync_group_quantity
@@ -208,20 +208,15 @@ def export_file(file_id):
     # -----------------------------------------------------
     # Export 실행
     # -----------------------------------------------------
+    # 원본이 없으면(업로드 폴더 유실, 다른 서버/볼륨의 DB 를 쓰는 경우 등) 404 대신
+    # DB 값만으로 서식 없는 Excel 을 만들어 데이터라도 받을 수 있게 한다.
+    from_original = source_path is not None
+
     try:
-        output = export_excel(f)
-
-    except FileNotFoundError:
-        # 서버 내부 경로는 클라이언트에 노출하지 않는다 (로그에만 남김).
-        logger.warning(
-            "Excel export source missing | file_id=%s | path=%s",
-            file_id,
-            f.file_path,
-        )
-
-        return jsonify(
-            {"error": "원본 Excel 파일이 서버에 없습니다. 관리자에게 문의하세요."}
-        ), 404
+        if from_original:
+            output = export_excel(f, source=source_path)
+        else:
+            output = export_excel_from_db(f)
 
     except Exception:
         db.session.rollback()
@@ -248,7 +243,12 @@ def export_file(file_id):
 
     stem = Path(f.original_filename).stem or "inventory"
 
-    download_name = f"{stem}_수정본{extension}"
+    if from_original:
+        download_name = f"{stem}_수정본{extension}"
+    else:
+        # 새로 만든 통합문서라 매크로가 없으므로 항상 xlsx
+        extension = ".xlsx"
+        download_name = f"{stem}_수정본(원본서식없음){extension}"
 
     logger.info(
         "Excel export completed | file_id=%s | filename=%s",
@@ -258,7 +258,8 @@ def export_file(file_id):
 
     log_action(
         "excel_export",
-        detail=f"{f.original_filename} 수정본 내보내기",
+        detail=f"{f.original_filename} 수정본 내보내기"
+        + ("" if from_original else " (원본 파일 없음 — DB 값으로 생성)"),
         target_type="excel_file",
         target_id=f.id,
     )

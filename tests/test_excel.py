@@ -145,3 +145,25 @@ def test_export_logs_action(admin_client, app):
     admin_client.get(f"/files/{file_id}/export")
     data = admin_client.get("/api/adminlog?action=excel_export").get_json()
     assert data["count"] == 1
+
+
+def test_export_without_original_file_falls_back_to_db_data(admin_client, app):
+    """원본 xlsx 가 서버에서 사라졌어도 DB 값으로 Excel 을 만들어 내려준다 (예전엔 404 JSON)."""
+    from pathlib import Path
+
+    _upload(admin_client, _xlsx(ROWS))
+    with app.app_context():
+        ef = ExcelFile.query.one()
+        file_id = ef.id
+        Path(ef.file_path).unlink()
+        row_id = InventoryRow.query.filter_by(identifier="ST4000").one().id
+    api(admin_client, "PATCH", f"/api/rows/{row_id}", data={"수량": 3})
+
+    export = admin_client.get(f"/files/{file_id}/export")
+    assert export.status_code == 200, export.get_data(as_text=True)[:200]
+    assert "attachment" in export.headers["Content-Disposition"]
+
+    ws = load_workbook(io.BytesIO(export.data))["재고"]
+    assert [c.value for c in ws[1]] == ["Code", "품명", "수량", "용량", "위치"]
+    assert [c.value for c in ws[2]] == ["ST4000", "4TB SAS", 3, "4TB", "서울IDC"]
+    assert ws.max_row == 4  # 헤더 + 3행

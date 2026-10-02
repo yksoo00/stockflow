@@ -10,6 +10,7 @@ from ..services.notify import mail
 from ..utils.time import fmt, local_date_range_utc, utcnow
 from .common import (
     apply_site_filter,
+    claim_transition,
     fmt_qty,
     lock_row,
     log_action,
@@ -237,8 +238,22 @@ def cancel_stockout(stockout_id):
     if current_user.role != "admin" and entry.user_id != current_user.id:
         return jsonify({"error": "본인이 처리한 출고만 취소할 수 있습니다."}), 403
 
+    # 동시에 들어온 같은 취소 요청 중 하나만 통과시킨다 (수량 이중 원복 방지).
+    cancelled_at = utcnow()
+    if not claim_transition(
+        StockOut,
+        entry.id,
+        StockOut.cancelled_at.is_(None),
+        cancelled_at=cancelled_at,
+        cancelled_by_id=current_user.id,
+        cancel_reason=cancel_reason,
+    ):
+        db.session.rollback()
+        return jsonify({"error": "이미 취소된 출고입니다."}), 400
+
     row = lock_row(entry.inventory_row_id) if entry.inventory_row_id else None
     if row is None:
+        db.session.rollback()
         return jsonify(
             {"error": "원본 재고 행이 삭제되어 수량을 되돌릴 수 없습니다. 관리자에게 문의하세요."}
         ), 400
@@ -263,7 +278,8 @@ def cancel_stockout(stockout_id):
         unit.stock_out_id = None
         unit.stock_in = stock_in
 
-    entry.cancelled_at = utcnow()
+    # DB 는 claim_transition 으로 이미 바뀌었고, 응답 직렬화용으로 객체 값만 맞춘다.
+    entry.cancelled_at = cancelled_at
     entry.cancelled_by_id = current_user.id
     entry.cancel_reason = cancel_reason
 

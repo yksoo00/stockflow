@@ -12,6 +12,7 @@ from ..utils.time import fmt, local_date_range_utc, utcnow
 from .common import (
     admin_required_api,
     apply_site_filter,
+    claim_transition,
     fmt_qty,
     lock_row,
     log_action,
@@ -242,9 +243,21 @@ def approve_stockrequest(request_id):
     if entry.status != "requested":
         return jsonify({"error": "이미 처리된 요청입니다."}), 400
 
+    approved_at = utcnow()
+    if not claim_transition(
+        StockRequest,
+        entry.id,
+        StockRequest.status == "requested",
+        status="approved",
+        approved_by_id=current_user.id,
+        approved_at=approved_at,
+    ):
+        db.session.rollback()
+        return jsonify({"error": "이미 처리된 요청입니다."}), 400
+
     entry.status = "approved"
     entry.approved_by_id = current_user.id
-    entry.approved_at = utcnow()
+    entry.approved_at = approved_at
     log_action(
         "stockrequest_approve",
         detail=f"{entry.identifier or entry.item_name} 입고요청 #{entry.id} 승인 ({fmt_qty(entry.quantity)}개, {entry.site or '-'})",
@@ -279,9 +292,23 @@ def arrive_stockrequest(request_id):
     if entry.status != "approved":
         return jsonify({"error": "승인된 요청만 물품도착 처리할 수 있습니다."}), 400
 
+    # 동시에 들어온 같은 물품도착 요청 중 하나만 통과시킨다 (재고 이중 가산 방지).
+    arrived_at = utcnow()
+    if not claim_transition(
+        StockRequest,
+        entry.id,
+        StockRequest.status == "approved",
+        status="arrived",
+        arrived_by_id=current_user.id,
+        arrived_at=arrived_at,
+    ):
+        db.session.rollback()
+        return jsonify({"error": "이미 물품도착 처리된 요청입니다."}), 400
+
     row = lock_row(entry.inventory_row_id) if entry.inventory_row_id else None
 
     if row is None:
+        db.session.rollback()
         return jsonify({"error": "원본 품목이 삭제되어 재고에 반영할 수 없습니다."}), 400
 
     payload = request.get_json(silent=True) or {}
@@ -304,7 +331,7 @@ def arrive_stockrequest(request_id):
 
     entry.status = "arrived"
     entry.arrived_by_id = current_user.id
-    entry.arrived_at = utcnow()
+    entry.arrived_at = arrived_at
 
     db.session.flush()
     log_action(
