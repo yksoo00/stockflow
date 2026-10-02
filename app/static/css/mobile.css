@@ -1,0 +1,100 @@
+/* =========================================================
+   모바일 반응형 (≤900px 태블릿/폰, ≤560px 폰)
+   app.css / components.css 뒤에 로드해 앞선 규칙을 덮는다.
+   ========================================================= */
+
+/* 그리드 칸·패널이 안의 넓은 표 때문에 화면보다 커지지 않게 (표는 자기 상자 안에서 가로 스크롤) */
+.panel,.card,.table-wrap,.two-col>*,.chart-grid>*,.cards>*{min-width:0}
+.column-chart,.column-labels{grid-auto-columns:minmax(0,1fr)}
+.column-labels>*{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media (max-width:900px){
+  /* ---- 메뉴: 예전 아이콘 전용(72px, 글자 숨김) 규칙을 되돌리고 서랍형으로 ---- */
+  .sidebar{width:min(280px,84vw);padding:20px 14px;overflow-y:auto;visibility:hidden;transition:transform .22s ease,visibility .22s}
+  .sidebar.open{visibility:visible;box-shadow:12px 0 40px rgba(0,0,0,.25)}
+  .sidebar .brand{font-size:19px;padding:4px 10px 22px 58px;min-height:42px}
+  .sidebar nav{gap:4px}
+  .sidebar nav a{font-size:15px;text-align:left;padding:12px 14px}
+  .sidebar nav a:before{content:none}
+  .nav-toggle{top:9px;left:12px}
+
+  /* ---- 상단바: 햄버거 버튼과 같은 줄, 스크롤해도 고정 ---- */
+  .main{padding:0 12px 28px}
+  .topbar{height:60px;margin:0 -12px;padding:0 12px 0 66px;flex-wrap:nowrap;gap:10px}
+  .crumb{white-space:nowrap;font-size:15px}
+  .user{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px;text-align:right}
+
+  /* ---- 페이지 머리 ---- */
+  .page-head{padding:22px 4px 16px;gap:12px}
+  .page-head h1{font-size:25px;line-height:1.25;overflow-wrap:anywhere}
+  .page-head p{font-size:14px}
+  .page-actions{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px}
+  .page-actions .primary,.page-actions .ghost,.page-actions>a{padding:11px 14px;font-size:14px}
+
+  /* ---- 카드/패널 ---- */
+  .cards{padding:0;gap:12px;margin-bottom:16px}
+  .card{padding:18px}
+  .card strong{font-size:28px}
+  .panel{margin:0 0 16px;padding:16px 12px;border-radius:16px}
+  .panel-head{flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .panel-head h2{font-size:18px}
+  .two-col{grid-template-columns:1fr;gap:0}
+
+  /* ---- 표: 상자 안에서만 가로 스크롤, 칸은 조금 촘촘하게 ---- */
+  .table-wrap{-webkit-overflow-scrolling:touch}
+  th,td{padding:10px 11px}
+  td{font-size:12.5px}
+  .mini-table{display:block;overflow-x:auto;min-width:0;-webkit-overflow-scrolling:touch}
+  .mini-table th,.mini-table td{white-space:nowrap}
+
+  /* ---- 검색/필터 도구줄 ---- */
+  .toolbar{gap:8px}
+  .toolbar input:not([type=checkbox]):not([type=radio]),.toolbar select,.toolbar .ghost,.toolbar .primary{width:100%;min-width:0}
+  .toolbar .site-text{max-width:none!important}  /* 매크로의 inline max-width:200px */
+  .toolbar .check-field{margin:2px 0}
+  .date-field{width:100%}
+  .date-field span{white-space:nowrap}
+  .toolbar .date-field input[type="date"]{flex:1;width:auto;min-width:0;border:0;padding:0;box-shadow:none}
+  .filters>*{min-width:0;max-width:100%}
+  .filter-bar{align-items:stretch;width:100%}
+  .filter-buttons{flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .filter-button{flex:0 0 auto}
+  .filter-search-item{min-width:0;width:100%}
+  .trend-toolbar>*,.period-toolbar input,.period-toolbar select{width:100%;min-width:0}
+  .seg{width:100%}
+  .seg button{flex:1}
+
+  /* ---- Excel 파일 카드: 긴 파일명 줄바꿈, 버튼은 아래 줄 ---- */
+  .file-card-manage{flex-wrap:wrap}
+  .file-card-link{flex:1 1 100%}
+  .file-card b{overflow-wrap:anywhere}
+  .file-card-manage>form{width:100%;justify-content:flex-end}
+
+  /* ---- 모달: 아래에서 올라오는 시트 형태 ---- */
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal-box{max-width:100%;max-height:92vh;border-radius:18px 18px 0 0}
+  .modal-head,.modal-body,.modal-foot{padding-left:16px;padding-right:16px}
+  /* 버튼이 많으면(닫기·입고·출고·입고요청·수정) 한 줄에 우겨넣지 말고 줄바꿈 */
+  .modal-foot{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+  .modal-foot button,.modal-foot a{white-space:nowrap;padding:12px 10px}
+
+  /* ---- 채팅 ---- */
+  .chat-panel{min-height:60vh}
+  .chat-bubble{max-width:90%}
+
+  /* iOS 는 16px 미만 입력칸을 누르면 화면을 확대해 버린다 */
+  input,select,textarea,.search,.modal-input,.filter-input{font-size:16px}
+}
+
+@media (max-width:560px){
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cards>:last-child:nth-child(odd){grid-column:1/-1}
+  .card{padding:15px}
+  .card strong{font-size:24px;margin:4px 0}
+  .card small{font-size:12px}
+  .page-head h1{font-size:22px}
+  .column-chart,.column-labels{gap:3px}
+  .column-chart .col b,.column-labels{font-size:9px}
+  .ebay-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .auth-card{padding:28px 20px}
+}
