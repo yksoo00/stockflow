@@ -47,6 +47,9 @@ class InventoryRow(db.Model):
     model = db.Column(db.String(255), index=True)
     capacity = db.Column(db.String(100), index=True)
     quantity = db.Column(db.Float, index=True)
+    # 엑셀 '필수수량' 열 값. 출고 후 재고가 이보다 적어지면 모자란 만큼 입고요청을 자동 생성한다.
+    # 비어 있으면 default_required_quantity() 를 쓴다.
+    required_quantity = db.Column(db.Float)
     location = db.Column(db.String(255), index=True)
     status = db.Column(db.String(100), index=True)
 

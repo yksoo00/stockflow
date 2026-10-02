@@ -133,7 +133,7 @@ def notify_low_stock(row, new_qty, site):
     label = _item_label(row.identifier, row.item_name)
     subject = f"[StockFlow] 저재고: {label} 잔여 {new_qty:g}개"
     body = (
-        f"출고 후 재고가 임계값 이하로 떨어졌습니다.\n\n"
+        f"출고 후 재고가 필수수량보다 적어졌습니다.\n\n"
         f"품목   : {label}\n"
         f"잔여   : {new_qty:g}\n"
         f"출고지 : {site or '-'}\n"

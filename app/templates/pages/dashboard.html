@@ -12,7 +12,7 @@
 <section class="cards">
   <div class="card"><span>전체 행</span><strong>{{ total }}</strong><small>등록된 재고 데이터</small></div>
   <div class="card danger-card">
-    <span>저재고</span><strong>{{ low }}</strong><small>수량 {{ low_threshold|int if low_threshold == low_threshold|int else low_threshold }}개 이하</small>
+    <span>저재고</span><strong>{{ low }}</strong><small>필수수량 미만</small>
     <button type="button" id="lowStockToggle" class="ghost small low-stock-link">저재고만 조회 ↓</button>
   </div>
   <div class="card"><span>Excel 파일</span><strong>{{ files|length }}</strong><small>등록된 원본</small></div>

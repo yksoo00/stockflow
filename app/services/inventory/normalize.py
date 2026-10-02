@@ -67,7 +67,16 @@ ALIASES = {
         "상태",
         "status",
     ],
+
+    # 품목마다 유지해야 하는 최소 재고. 출고 후 이보다 적어지면 모자란 만큼 입고요청.
+    "required_quantity": [
+        "필수수량",
+        "필수 수량",
+    ],
 }
+
+# 시트에 필수수량 열이 없을 때 새로 만드는 열 이름
+REQUIRED_QUANTITY_COLUMN = "필수수량"
 
 
 def norm(value):
@@ -245,6 +254,14 @@ def normalize_row(data):
                 number
             )
         )
+
+    # 필수수량은 숫자만 인정한다 (빈칸/문자는 없음 → 기본값 적용)
+    if "required_quantity" in result:
+        required = to_number(result["required_quantity"])
+        if required is None:
+            del result["required_quantity"]
+        else:
+            result["required_quantity"] = required
 
     if quantity_candidates:
 

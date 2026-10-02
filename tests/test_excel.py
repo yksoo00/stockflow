@@ -9,12 +9,24 @@ from app.models import DiskUnit, ExcelFile, InventoryGroup, InventoryRow, SheetC
 
 from .conftest import api
 
+_XLSX_CACHE = {}
+
 
 def _xlsx(rows, header_row_offset=0, title_rows=()):
     """
     rows[0] 이 헤더. header_row_offset 만큼 위에 제목 행을 둔다.
     빈 열(None 헤더 + 데이터 없음)을 섞어 B-15 시나리오를 만든다.
+
+    같은 인자면 같은 바이트를 돌려준다. openpyxl 은 저장 시각(초 단위)을 파일에 넣어서,
+    매번 새로 만들면 초가 넘어갈 때 해시가 달라져 중복 업로드 테스트가 가끔 실패했다.
     """
+    key = repr((rows, header_row_offset, title_rows))
+    if key not in _XLSX_CACHE:
+        _XLSX_CACHE[key] = _build_xlsx(rows, title_rows).getvalue()
+    return io.BytesIO(_XLSX_CACHE[key])
+
+
+def _build_xlsx(rows, title_rows):
     wb = Workbook()
     ws = wb.active
     ws.title = "재고"
@@ -58,7 +70,8 @@ def test_upload_parses_and_keeps_real_column_index(admin_client, app):
 
         # 빈 B열은 건너뛰고, 품명은 실제 C(3)열, 수량은 D(4)열 이어야 한다 (예전엔 2,3 으로 밀렸다)
         cols = {c.original_name: c.column_index for c in SheetColumn.query.all()}
-        assert cols == {"Code": 1, "품명": 3, "수량": 4, "용량": 5, "위치": 6}
+        # 엑셀에 없던 필수수량 열은 맨 끝(7)에 만들어진다
+        assert cols == {"Code": 1, "품명": 3, "수량": 4, "용량": 5, "위치": 6, "필수수량": 7}
 
         # 그룹 키는 해시(64자) — 512자 초과로 터지던 문제 (B-12)
         for g in InventoryGroup.query.all():
@@ -165,8 +178,8 @@ def test_export_without_original_file_falls_back_to_db_data(admin_client, app):
     assert "attachment" in export.headers["Content-Disposition"]
 
     ws = load_workbook(io.BytesIO(export.data))["재고"]
-    assert [c.value for c in ws[1]] == ["Code", "품명", "수량", "용량", "위치"]
-    assert [c.value for c in ws[2]] == ["ST4000", "4TB SAS", 3, "4TB", "서울IDC"]
+    assert [c.value for c in ws[1]] == ["Code", "품명", "수량", "용량", "위치", "필수수량"]
+    assert [c.value for c in ws[2]] == ["ST4000", "4TB SAS", 3, "4TB", "서울IDC", 2]
     assert ws.max_row == 4  # 헤더 + 3행
 
 
@@ -210,3 +223,22 @@ def test_duplicate_upload_with_existing_original_is_still_blocked(admin_client, 
     assert "duplicate_of=" in resp.headers["Location"]
     with app.app_context():
         assert ExcelFile.query.count() == 1
+
+
+def test_delete_from_file_list_page_passes_csrf(admin_client, app):
+    """목록(/files) 화면의 삭제 form 이 CSRF 토큰을 실어 보내야 한다 (예전엔 빠져서 400)."""
+    import re
+
+    _upload(admin_client, _xlsx(ROWS))
+    with app.app_context():
+        file_id = ExcelFile.query.one().id
+
+    html = admin_client.get("/files").get_data(as_text=True)
+    form = re.search(rf'<form method="post" action="/files/{file_id}/delete".*?</form>', html, re.S).group(0)
+    token = re.search(r'name="csrf_token" value="([^"]+)"', form)
+    assert token, form
+
+    resp = admin_client.post(f"/files/{file_id}/delete", data={"csrf_token": token.group(1)})
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/files")
+    with app.app_context():
+        assert ExcelFile.query.count() == 0
