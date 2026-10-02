@@ -144,6 +144,19 @@ def test_cancel_twice_is_rejected(user_client, app):
     assert resp.status_code == 400
 
 
+def test_cancel_on_deleted_row_stays_uncancelled(user_client, app):
+    """원본 행이 없어 취소에 실패하면 취소 선점(claim)도 되돌려져야 한다."""
+    row_id = make_row(app, quantity=3)
+    out_id = api(user_client, "POST", "/api/stockout", row_id=row_id, site="A", quantity=1).get_json()["item"]["id"]
+    with app.app_context():
+        db.session.get(InventoryRow, row_id).is_deleted = True
+        db.session.commit()
+
+    assert api(user_client, "POST", f"/api/stockout/{out_id}/cancel").status_code == 400
+    with app.app_context():
+        assert db.session.get(StockOut, out_id).cancelled_at is None
+
+
 def test_cancel_by_other_user_is_forbidden(app, client):
     """일반 사용자는 본인 출고만 취소할 수 있다. (관리자가 만든 출고를 user1 이 취소 시도)"""
     from .conftest import csrf_token_from, login

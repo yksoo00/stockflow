@@ -4,6 +4,7 @@ import io
 
 from openpyxl import Workbook, load_workbook
 
+from app import db
 from app.models import DiskUnit, ExcelFile, InventoryGroup, InventoryRow, SheetColumn, StockOut
 
 from .conftest import api
@@ -145,3 +146,67 @@ def test_export_logs_action(admin_client, app):
     admin_client.get(f"/files/{file_id}/export")
     data = admin_client.get("/api/adminlog?action=excel_export").get_json()
     assert data["count"] == 1
+
+
+def test_export_without_original_file_falls_back_to_db_data(admin_client, app):
+    """원본 xlsx 가 서버에서 사라졌어도 DB 값으로 Excel 을 만들어 내려준다 (예전엔 404 JSON)."""
+    from pathlib import Path
+
+    _upload(admin_client, _xlsx(ROWS))
+    with app.app_context():
+        ef = ExcelFile.query.one()
+        file_id = ef.id
+        Path(ef.file_path).unlink()
+        row_id = InventoryRow.query.filter_by(identifier="ST4000").one().id
+    api(admin_client, "PATCH", f"/api/rows/{row_id}", data={"수량": 3})
+
+    export = admin_client.get(f"/files/{file_id}/export")
+    assert export.status_code == 200, export.get_data(as_text=True)[:200]
+    assert "attachment" in export.headers["Content-Disposition"]
+
+    ws = load_workbook(io.BytesIO(export.data))["재고"]
+    assert [c.value for c in ws[1]] == ["Code", "품명", "수량", "용량", "위치"]
+    assert [c.value for c in ws[2]] == ["ST4000", "4TB SAS", 3, "4TB", "서울IDC"]
+    assert ws.max_row == 4  # 헤더 + 3행
+
+
+def test_reupload_restores_missing_original_and_export_keeps_format(admin_client, app):
+    """
+    같은 DB 를 쓰는 다른 서버(로컬 ↔ Docker)에서 올려 원본이 이 서버에 없을 때,
+    원본을 다시 올리면 중복으로 막지 않고 기존 기록에 원본을 붙여 서식 유지 내보내기가 되게 한다.
+    """
+    from pathlib import Path
+
+    title = [["2026년 재고 현황", None, None, None, None, None]]
+    _upload(admin_client, _xlsx(ROWS, title_rows=title))
+    with app.app_context():
+        ef = ExcelFile.query.one()
+        file_id = ef.id
+        Path(ef.file_path).unlink()
+        row_id = InventoryRow.query.filter_by(identifier="ST4000").one().id
+    api(admin_client, "PATCH", f"/api/rows/{row_id}", data={"수량": 3})
+
+    resp = _upload(admin_client, _xlsx(ROWS, title_rows=title), name="원본.xlsx")
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/files/{file_id}"
+
+    with app.app_context():
+        assert ExcelFile.query.count() == 1  # 새 기록을 만들지 않는다
+        assert InventoryRow.query.count() == 3  # 웹에서 고친 DB 값은 그대로
+        assert Path(db.session.get(ExcelFile, file_id).file_path).is_file()
+
+    export = admin_client.get(f"/files/{file_id}/export")
+    assert export.status_code == 200
+    assert "%EC%9B%90%EB%B3%B8%EC%84%9C%EC%8B%9D%EC%97%86%EC%9D%8C" not in export.headers["Content-Disposition"]  # (원본서식없음) 아님
+    ws = load_workbook(io.BytesIO(export.data))["재고"]
+    assert ws["A1"].value == "2026년 재고 현황"  # 원본 제목 행 유지
+    assert ws["A3"].value == "ST4000" and ws["D3"].value == 3  # 수정값 반영
+    assert "excel_restore" in [a["action"] for a in admin_client.get("/api/adminlog").get_json()["items"]]
+
+
+def test_duplicate_upload_with_existing_original_is_still_blocked(admin_client, app):
+    _upload(admin_client, _xlsx(ROWS))
+    resp = _upload(admin_client, _xlsx(ROWS), name="again.xlsx")
+    assert "duplicate_of=" in resp.headers["Location"]
+    with app.app_context():
+        assert ExcelFile.query.count() == 1

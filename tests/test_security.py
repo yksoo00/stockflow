@@ -1,10 +1,10 @@
 """A단계(보안) 회귀 테스트: CSRF, open redirect, 역할 부여, 로그인 제한, SECRET_KEY 검사."""
 
 import pytest
+from werkzeug.security import check_password_hash
 
 from app import _bootstrap_admin, create_app, db
 from app.models import User
-from werkzeug.security import check_password_hash
 
 from .conftest import csrf_token_from, login
 

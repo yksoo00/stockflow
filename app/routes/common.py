@@ -224,6 +224,23 @@ def lock_row(row_id):
     return row
 
 
+def claim_transition(model, obj_id, *conditions, **values):
+    """
+    conditions 를 만족할 때만 values 로 바꾸는 원자적 UPDATE. 바꿨으면 True.
+
+    "상태 확인 → 수량 반영" 사이에 같은 요청이 한 번 더 들어와 둘 다 통과하는 것을 막는다
+    (물품도착/출고 취소 더블클릭). 조건 검사와 변경이 한 문장이라 MySQL·SQLite 모두에서
+    먼저 들어온 쪽만 1행을 바꾸고, 뒤쪽은 커밋을 기다렸다가 0행이 된다.
+    실패 경로에서는 반드시 rollback 해서 선점을 풀어야 한다.
+    """
+    changed = (
+        db.session.query(model)
+        .filter(model.id == obj_id, *conditions)
+        .update(values, synchronize_session=False)
+    )
+    return changed == 1
+
+
 # ---------------------------------------------------------------------------
 # 사이트 필터 (목록 API 공통)
 #   site  = 부분 일치 한 개 (검색창)

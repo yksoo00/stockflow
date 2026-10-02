@@ -2,7 +2,7 @@ import logging
 from io import BytesIO
 from pathlib import Path
 
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.cell.cell import MergedCell
 
 logger = logging.getLogger(__name__)
@@ -26,15 +26,17 @@ def _write_value(cell, value):
     cell.value = str(value)
 
 
-def export_excel(excel_file):
+def export_excel(excel_file, source=None):
     """
     업로드 당시의 원본 Excel을 다시 열고 DB에 저장된 현재 행 데이터를
     같은 Sheet/행 위치에 반영하여 수정본을 메모리에서 생성한다.
 
     원본 파일의 서식/병합/열 너비 등은 가능한 한 그대로 유지하고,
     웹에서 수정된 데이터만 덮어쓴다.
+
+    source 를 주면 file_path 대신 그 경로의 원본을 연다 (라우트가 실제 위치를 찾은 경우).
     """
-    source = Path(excel_file.file_path)
+    source = Path(source or excel_file.file_path)
     logger.info("Export workbook load | file_id=%s | path=%s", excel_file.id, source)
 
     if not source.exists():
@@ -116,6 +118,50 @@ def export_excel(excel_file):
     wb.save(output)
     logger.info(
         "Export workbook saved | file_id=%s | bytes=%s",
+        excel_file.id,
+        output.getbuffer().nbytes,
+    )
+    output.seek(0)
+    return output
+
+
+def export_excel_from_db(excel_file):
+    """
+    원본 Excel 이 서버에 없을 때 쓰는 대체 내보내기.
+    DB 에 남아 있는 Sheet/컬럼/행만으로 새 통합문서를 만든다. 원본 서식·병합·제목 행은 없고,
+    Sheet 마다 1행이 헤더, 2행부터 삭제되지 않은 데이터 행이다.
+    """
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    for sheet in sorted(excel_file.sheets, key=lambda s: (s.sheet_order or 0, s.id)):
+        ws = wb.create_sheet(title=sheet.sheet_name)
+
+        headers = []
+        for column in sorted(sheet.columns, key=lambda c: (c.column_index or 0, c.id)):
+            if column.original_name and column.original_name not in headers:
+                headers.append(column.original_name)
+        if headers:
+            ws.append(headers)
+
+        rows = sorted(
+            (r for r in sheet.rows if not r.is_deleted), key=lambda r: (r.row_number or 0, r.id)
+        )
+        for offset, row in enumerate(rows, start=2):
+            data = row.data_json or {}
+            for col_idx, name in enumerate(headers, start=1):
+                _write_value(ws.cell(offset, col_idx), data.get(name))
+
+        if ws.max_row > 1 and headers:
+            ws.auto_filter.ref = ws.dimensions
+
+    if not wb.worksheets:
+        wb.create_sheet(title="Sheet1")
+
+    output = BytesIO()
+    wb.save(output)
+    logger.info(
+        "Export workbook rebuilt from DB | file_id=%s | bytes=%s",
         excel_file.id,
         output.getbuffer().nbytes,
     )
